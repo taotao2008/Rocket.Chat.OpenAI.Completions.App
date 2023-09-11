@@ -19,12 +19,15 @@ import {
     UIKitActionButtonInteractionContext,
     UIKitViewSubmitInteractionContext,
 } from "@rocket.chat/apps-engine/definition/uikit";
+import {requestBillingByPhone} from './api/RequestManagerApi';
 import { OpenAIChatCommand } from "./commands/OpenAIChatCommand";
 import { buttons } from "./config/Buttons";
 import { settings } from "./config/Settings";
+import {AppEnum} from './enum/App';
 import { ActionButtonHandler } from "./handlers/ActionButtonHandler";
 import { ViewSubmitHandler } from "./handlers/ViewSubmit";
 import { OpenAiCompletionRequest } from "./lib/RequestOpenAiChat";
+import {sendBillingNotification} from './lib/SendBillingNotification';
 import { sendDirect } from "./lib/SendDirect";
 import { sendMessage } from "./lib/SendMessage";
 import { sendNotification } from "./lib/SendNotification";
@@ -33,8 +36,10 @@ import { DirectContext } from "./persistence/DirectContext";
 export class OpenAiChatApp extends App implements IPostMessageSent {
     constructor(info: IAppInfo, logger: ILogger, accessors: IAppAccessors) {
         super(info, logger, accessors);
+
     }
 
+    // Method will be called during initialization. It allows for adding custom configuration options and defaults
     public async extendConfiguration(configuration: IConfigurationExtend) {
         await configuration.slashCommands.provideSlashCommand(
             new OpenAIChatCommand(this)
@@ -103,9 +108,10 @@ export class OpenAiChatApp extends App implements IPostMessageSent {
         if (
             bot_user &&
             message.room.type == RoomType.DIRECT_MESSAGE && // direct messages
-            message.room.userIds?.includes(bot_user?.id) // that has bot_user id
-            // bot_user?.id !== sender.id // and was not sent by the bot itself
+            message.room.userIds?.includes(bot_user?.id)  // that has bot_user id
+            //bot_user?.id !== sender.id // and was not sent by the bot itself
         ) {
+            // 消息持久化开始
             // this the bot answer, get the actual context and store it
             if (bot_user?.id == sender.id && message.threadId) {
                 context_data = await DirectContext.get(read, message.threadId);
@@ -147,13 +153,71 @@ export class OpenAiChatApp extends App implements IPostMessageSent {
                     );
                 }
             }
+            // 消息持久化结束
+
+
+            const prompt = message.text as string;
+
+
+            this.getLogger().debug("sender.emails[0].address=====");
+            this.getLogger().debug(sender.emails[0].address);
+
+
+
+            //计费
+            const isBilling = await requestBillingByPhone(
+                this,
+                http,
+                read,
+                prompt,
+                sender,
+                "1"
+            );
+            if (!isBilling) {
+                sendBillingNotification(
+                    modify,
+                    room,
+                    sender,
+                    AppEnum.MIDJOURNEY_TEXT_BILLING_fAIL
+                );
+                return ;
+            }
+
+            const wattingContent = AppEnum.CHATGPT_TEXT_WATTING;
+            sendNotification(
+                modify,
+                room,
+                sender,
+                wattingContent
+            );
+
+            let wattingMessageId = '';
+
+            /*if (room.type == 'd') {
+                wattingMessageId = await sendDirect(
+                    sender,
+                    read,
+                    modify,
+                    wattingContent
+                );
+            } else {
+                sendNotification(
+                    modify,
+                    room,
+                    sender,
+                    wattingContent
+                );
+            }*/
+
             const result = await OpenAiCompletionRequest(
                 this,
                 http,
                 read,
                 context,
-                sender
+                sender,
             );
+
+
             if (result.success) {
                 var markdown_message =
                     result.content.choices[0].message.content.replace(
@@ -164,15 +228,14 @@ export class OpenAiChatApp extends App implements IPostMessageSent {
                     sender,
                     read,
                     modify,
-                    markdown_message,
-                    message.threadId || message.id
+                    markdown_message
                 );
             } else {
                 sendNotification(
                     modify,
                     room,
                     sender,
-                    `**Error!** Could not Request Completion:\n\n` +
+                    `**执行出错!** 无法完成请求，请重试！:\n\n` +
                         result.content.error.message
                 );
             }

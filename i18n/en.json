@@ -1,9 +1,10 @@
 {
-    "OpenAIChat_API_KEY_LABEL": "API KEY",
-    "OpenAIChat_ORG_LABEL": "Organization (Optional)",
-    "OpenAIChat_MAX_TOKENS_LABEL": "Max tokens to return",
-    "OpenAIChat_AskChatGPT": "Ask ChatGPT",
-    "OpenAIChat_SlashCommand_Description": "Ask ChatGPT",
-    "OpenAIChat_TEMPERATURE_LABEL": "Temperature (Defaults to 1)",
-    "OpenAIChat_DEFAULT_SYSTEM_INSTRUCTION_LABEL": "System Instruction (how the ChatGPT should behave)"
+    "OpenAIChat4_API_KEY_LABEL": "API KEY",
+    "OpenAIChat4_ORG_LABEL": "Organization (Optional)",
+    "OpenAIChat4_MAX_TOKENS_LABEL": "Max tokens to return",
+    "OpenAIChat4_AskChatGPT": "打开AI问答对话框",
+    "OpenAIChat4_SlashCommand_Params": "与AI问答机器人对话",
+    "OpenAIChat4_SlashCommand_Description": "与AI问答机器人对话",
+    "OpenAIChat4_TEMPERATURE_LABEL": "Temperature (Defaults to 1)",
+    "OpenAIChat4_DEFAULT_SYSTEM_INSTRUCTION_LABEL": "System Instruction (how the Ask Bot should behave)"
 }

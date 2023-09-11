@@ -30,6 +30,10 @@ export async function OpenAiCompletionRequest(
         .getEnvironmentReader()
         .getSettings()
         .getById(AppSetting.OpenAI_CHAT_TEMPERATURE);
+    const { value: ASK_API_URL } = await read
+        .getEnvironmentReader()
+        .getSettings()
+        .getById(AppSetting.ASK_API_URL);
     // request completion and return
     var headers = {
         Authorization: "Bearer " + API_KEY,
@@ -45,13 +49,14 @@ export async function OpenAiCompletionRequest(
     }
     const payload = {
         user: sender.id,
-        model: "gpt-3.5-turbo",
+        model: "gpt-4-0613",
+        //model: "gpt-3.5-turbo-0613",
         messages: prompt,
         max_tokens: OPEN_AI_CHAT_MAX_TOKENS,
         temperature: temperature,
     };
     return http
-        .post("https://api.openai.com/v1/chat/completions", {
+        .post(ASK_API_URL + "/v1/chat/completions", {
             headers: headers,
             data: payload,
         })

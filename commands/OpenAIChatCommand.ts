@@ -4,12 +4,20 @@ import {
     IRead,
 } from "@rocket.chat/apps-engine/definition/accessors";
 import {
+    IMessage, IMessageAction,
+    IPostMessageSent,
+} from "@rocket.chat/apps-engine/definition/messages";
+import {
     ISlashCommand,
     SlashCommandContext,
 } from "@rocket.chat/apps-engine/definition/slashcommands";
+import {requestBillingByPhone} from '../api/RequestManagerApi';
 import { AppSetting } from "../config/Settings";
+import {AppEnum} from '../enum/App';
 import { GetUserSystemInstruction } from "../lib/GetUserSystemInstruction";
 import { OpenAiCompletionRequest } from "../lib/RequestOpenAiChat";
+import {sendBillingNotification} from '../lib/SendBillingNotification';
+import {sendDirect} from '../lib/SendDirect';
 import { sendMessage } from "../lib/SendMessage";
 import { sendNotification } from "../lib/SendNotification";
 import { OpenAiChatApp } from "../OpenAiChatApp";
@@ -17,7 +25,7 @@ import { SystemInstructionPersistence } from "../persistence/ChatGPTPersistence"
 import { createAskChatGPTModal } from "../ui/AskChatGPTModal";
 
 export class OpenAIChatCommand implements ISlashCommand {
-    public command = "chatgpt";
+    public command = "chatgptplus";
     public i18nParamsExample = AppSetting.NAMESPACE + "_SlashCommand_Params";
     public i18nDescription = AppSetting.NAMESPACE + "_SlashCommand_Description";
     public providesPreview = false;
@@ -57,6 +65,37 @@ export class OpenAIChatCommand implements ISlashCommand {
         } else {
             var prompt = prompt_array.join(" ");
             const payload = [{ role: "user", content: prompt }];
+
+            //计费
+            const isBilling = await requestBillingByPhone(
+                this.app,
+                http,
+                read,
+                prompt,
+                sender,
+                "1"
+            );
+
+            if (!isBilling) {
+                sendBillingNotification(
+                    modify,
+                    room,
+                    sender,
+                    AppEnum.MIDJOURNEY_TEXT_BILLING_fAIL
+                );
+                return ;
+            }
+
+
+
+            sendNotification(
+                modify,
+                room,
+                sender,
+                AppEnum.CHATGPT_TEXT_WATTING
+            );
+
+
             const result = await OpenAiCompletionRequest(
                 this.app,
                 http,
@@ -64,6 +103,7 @@ export class OpenAIChatCommand implements ISlashCommand {
                 payload,
                 sender
             );
+
             if (result.success) {
                 // format return
                 var content = result.content.choices[0].message
@@ -84,7 +124,7 @@ export class OpenAIChatCommand implements ISlashCommand {
                     modify,
                     room,
                     sender,
-                    `**Error!** Could not Request Completion:\n\n` +
+                    `**执行出错!** 无法完成请求，请重试！:\n\n` +
                         result.content.error.message
                 );
             }

@@ -53,7 +53,7 @@ export async function sendDirect(
     modify: IModify,
     message: string,
     thread?: string,
-): Promise<void> {
+): Promise<string> {
     const messageStructure = modify.getCreator().startMessage();
     // get the appUser username
     const appUser = await read.getUserReader().getAppUser();
@@ -69,5 +69,5 @@ export async function sendDirect(
     if(thread){
         messageStructure.setThreadId(thread)
     }
-    await modify.getCreator().finish(messageStructure); // sends the message in the room.
+    return await modify.getCreator().finish(messageStructure); // sends the message in the room.
 }

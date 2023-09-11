@@ -5,14 +5,19 @@ import {
     IPersistence,
     IRead,
 } from "@rocket.chat/apps-engine/definition/accessors";
+import {IRoom} from '@rocket.chat/apps-engine/definition/rooms';
 import { UIKitViewSubmitInteractionContext } from "@rocket.chat/apps-engine/definition/uikit";
+import {requestBillingByPhone} from '../api/RequestManagerApi';
 import { AppSetting } from "../config/Settings";
+import {AppEnum} from '../enum/App';
 import { OpenAiCompletionRequest } from "../lib/RequestOpenAiChat";
+import {sendBillingNotification} from '../lib/SendBillingNotification';
 import { sendDirect } from "../lib/SendDirect";
 import { sendMessage } from "../lib/SendMessage";
 import { sendNotification } from "../lib/SendNotification";
 import { OpenAiChatApp } from "../OpenAiChatApp";
 import { SystemInstructionPersistence } from "../persistence/ChatGPTPersistence";
+import apply = Reflect.apply;
 
 export class ViewSubmitHandler {
     public async executor(
@@ -25,6 +30,8 @@ export class ViewSubmitHandler {
         logger?: ILogger
     ) {
         const interaction_data = context.getInteractionData();
+  /*      app.getLogger().info('interaction_data##############');
+        app.getLogger().info(interaction_data);*/
 
         if (interaction_data.view.id == "ask-chatgpt-submit-view") {
             //var prompt = interaction_data.view.state?.OpenAiCompletions_suggested_prompt
@@ -56,6 +63,40 @@ export class ViewSubmitHandler {
                     );
                     var instruction = completions_options["instruction"];
                 }
+
+
+                let room_id_billing = '';
+                //获取roomId
+                for (var output of output_options) {
+                    // get room, output_mode and other from the output option
+                    room_id_billing = output.split("#")[1];
+                }
+                const room_billing = await read.getRoomReader().getById(room_id_billing) as IRoom;
+                //计费
+                const isBilling = await requestBillingByPhone(
+                    app,
+                    http,
+                    read,
+                    prompt,
+                    user,
+                    "1"
+                );
+                if (!isBilling) {
+                    sendBillingNotification(
+                        modify,
+                        room_billing,
+                        user,
+                        AppEnum.MIDJOURNEY_TEXT_BILLING_fAIL
+                    );
+                    return ;
+                }
+
+                sendNotification(
+                    modify,
+                    room_billing,
+                    user,
+                    AppEnum.CHATGPT_TEXT_WATTING
+                );
 
                 // do request
                 OpenAiCompletionRequest(
@@ -91,7 +132,7 @@ export class ViewSubmitHandler {
                                         modify,
                                         room,
                                         user,
-                                        `**Error!** Could not Request Completion:\n\n` +
+                                        `**出错!** 信息如下：\n\n` +
                                             result.content.error.message
                                     );
                                 } else {
@@ -101,6 +142,9 @@ export class ViewSubmitHandler {
                                 content = content.replace(/^\s*/gm, "");
                                 var before_message = `**Instruction**: ${instruction}\n**Prompt**: ${prompt}`;
                                 var message = before_message + "\n" + content;
+
+
+
 
                                     switch (output_mode) {
                                         case "notification":

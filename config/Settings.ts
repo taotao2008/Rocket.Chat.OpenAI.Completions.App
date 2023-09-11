@@ -4,12 +4,15 @@ import {
 } from "@rocket.chat/apps-engine/definition/settings";
 
 export enum AppSetting {
-    NAMESPACE = "OpenAIChat",
+    NAMESPACE = "OpenAIChat4",
+    //NAMESPACE = "OpenAIChat",
     OpenAI_ORG = "openai_organization",
     OpenAI_API_KEY = "openai_api_key",
     OpenAI_CHAT_DEFAULT_SYSTEM_INSTRUCTION = "openai_chat_default_system_instruction",
     OpenAI_CHAT_MAX_TOKENS = "openai_chat_max_tokens",
     OpenAI_CHAT_TEMPERATURE = "openai_chat_temperature",
+    MAMNAGER_API_URL = 'mamnager_api_url',
+    ASK_API_URL = 'ask_api_url'
 }
 
 export const settings: Array<ISetting> = [
@@ -57,6 +60,24 @@ export const settings: Array<ISetting> = [
         packageValue: null,
         hidden: false,
         i18nLabel: AppSetting.NAMESPACE + "_TEMPERATURE_LABEL",
+        required: false,
+    },
+    {
+        id: AppSetting.MAMNAGER_API_URL,
+        public: true,
+        type: SettingType.STRING,
+        packageValue: null,
+        hidden: false,
+        i18nLabel: AppSetting.NAMESPACE + "_MAMNAGER_API_URL：后端计费系统地址API URL",
+        required: false,
+    },
+    {
+        id: AppSetting.ASK_API_URL,
+        public: true,
+        type: SettingType.STRING,
+        packageValue: null,
+        hidden: false,
+        i18nLabel: AppSetting.NAMESPACE + "ASK_API_URL：多负载API接口服务器地址API URL",
         required: false,
     },
 ];

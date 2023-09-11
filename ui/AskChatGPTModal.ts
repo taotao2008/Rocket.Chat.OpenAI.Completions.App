@@ -21,7 +21,7 @@ export function createAskChatGPTModal(
     blocks.addInputBlock({
         blockId: AppSetting.NAMESPACE + "_ask_chatgpt",
         label: {
-            text: `Instruction`,
+            text: `扮演角色`,
             type: TextObjectType.PLAINTEXT,
         },
         element: blocks.newPlainTextInputElement({
@@ -33,7 +33,7 @@ export function createAskChatGPTModal(
     blocks.addInputBlock({
         blockId: AppSetting.NAMESPACE + "_ask_chatgpt",
         label: {
-            text: `Prompt`,
+            text: `问题`,
             type: TextObjectType.PLAINTEXT,
         },
         element: blocks.newPlainTextInputElement({
@@ -42,6 +42,7 @@ export function createAskChatGPTModal(
             multiline: true,
         }),
     });
+
 
     // define output options
     var answer_options = [
@@ -92,16 +93,16 @@ export function createAskChatGPTModal(
             initialValue: [answer_initialValue],
             options: answer_options,
         }),
-        label: blocks.newPlainTextObject("Output"),
+        label: blocks.newPlainTextObject("输出"),
     });
 
     return {
         id: "ask-chatgpt-submit-view",
-        title: blocks.newPlainTextObject("Ask ChatGPT"),
+        title: blocks.newPlainTextObject("AI问答"),
         blocks: blocks.getBlocks(),
         submit: blocks.newButtonElement({
             actionId: "ask-chat-gpt",
-            text: blocks.newPlainTextObject("Ask"),
+            text: blocks.newPlainTextObject("提交"),
             value: "as-thread",
             style: ButtonStyle.PRIMARY,
         }),

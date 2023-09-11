@@ -24,6 +24,6 @@ export async function sendMessage(
     if (sender !== undefined){
         msg.setSender(sender)
     }
-    
+
     return await modify.getCreator().finish(msg);
 }
