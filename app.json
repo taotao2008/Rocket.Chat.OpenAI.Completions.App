@@ -8,12 +8,13 @@
         "homepage": "https://www.qmai.chat",
         "support": "https://www.qmai.chat"
     },
-    "name": "ChatGPT Plus机器人",
-    "nameSlug": "chatgptplus",
+    "name": "GPT Plus机器人",
+    "nameSlug": "gptplus",
     "classFile": "OpenAiChatApp.ts",
     "description": "GPT-4 机器人，可用于自然语言对话、专业知识问答、语义分析等场景",
     "implements": [
-        "IPostMessageSent"
+        "IPostMessageSent",
+        "IPostRoomCreate"
     ],
     "permissions": [
         {
@@ -39,6 +40,15 @@
         },
         {
             "name": "persistence"
+        },
+        {
+            "name": "server-setting.read"
+        },
+        {
+            "name": "server-setting.write"
+        },
+        {
+            "name": "user.read"
         }
     ]
 }

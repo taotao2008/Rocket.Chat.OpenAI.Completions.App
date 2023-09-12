@@ -25,7 +25,7 @@ import { SystemInstructionPersistence } from "../persistence/ChatGPTPersistence"
 import { createAskChatGPTModal } from "../ui/AskChatGPTModal";
 
 export class OpenAIChatCommand implements ISlashCommand {
-    public command = "chatgptplus";
+    public command = "gptplus";
     public i18nParamsExample = AppSetting.NAMESPACE + "_SlashCommand_Params";
     public i18nDescription = AppSetting.NAMESPACE + "_SlashCommand_Description";
     public providesPreview = false;

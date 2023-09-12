@@ -18,6 +18,7 @@ export function createAskChatGPTModal(
 ): IUIKitContextualBarViewParam {
     const blocks = modify.getCreator().getBlockBuilder();
 
+
     blocks.addInputBlock({
         blockId: AppSetting.NAMESPACE + "_ask_chatgpt",
         label: {
@@ -97,7 +98,7 @@ export function createAskChatGPTModal(
     });
 
     return {
-        id: "ask-chatgpt-submit-view",
+        id: `ask-chatgpt-submit-view--${room.id}`,
         title: blocks.newPlainTextObject("AI问答"),
         blocks: blocks.getBlocks(),
         submit: blocks.newButtonElement({

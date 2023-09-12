@@ -33,7 +33,7 @@ export class ViewSubmitHandler {
   /*      app.getLogger().info('interaction_data##############');
         app.getLogger().info(interaction_data);*/
 
-        if (interaction_data.view.id == "ask-chatgpt-submit-view") {
+        if (interaction_data.view.id.startsWith("ask-chatgpt-submit-view")) {
             //var prompt = interaction_data.view.state?.OpenAiCompletions_suggested_prompt
             if (interaction_data.view.state) {
                 const completions_options =
