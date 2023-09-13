@@ -15,4 +15,5 @@ export enum AppEnum {
 `,
     MIDJOURNEY_TEXT_BILLING_fAIL = '抱歉，您的金币不足，请充值！',
     SHOP_URL = 'https://www.qmai.chat/app/buy-thing',
+    SPEECH2TXT_TEXT_WATTING = '正在语音转文本，请稍等',
 }

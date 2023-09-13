@@ -82,6 +82,7 @@ export function createAskChatGPTModal(
         answer_initialValue = "message#" + room.id + "#" + threadId
         // option to response in a
     }
+    answer_initialValue = "direct#" + room.id + "#" + threadId
 
     blocks.addInputBlock({
         blockId: AppSetting.NAMESPACE + "_ask_chatgpt",

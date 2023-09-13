@@ -1,17 +1,17 @@
 {
-    "id": "844e8da9-f6be-4e4a-8040-5e6e71ca4a40",
-    "version": "0.0.8",
+    "id": "844e8da9-f6be-4e4a-8040-5e6e71ca4a35",
+    "version": "0.0.7",
     "requiredApiVersion": "^1.39.1",
-    "iconFile": "GPT-4.png",
+    "iconFile": "GPT-3.png",
     "author": {
         "name": "Qmai.Chat Technologies.",
         "homepage": "https://www.qmai.chat",
         "support": "https://www.qmai.chat"
     },
-    "name": "GPT Plus机器人",
-    "nameSlug": "gptplus",
+    "name": "GPT问答机器人",
+    "nameSlug": "gpt",
     "classFile": "OpenAiChatApp.ts",
-    "description": "GPT-4 机器人，可用于自然语言对话、专业知识问答、语义分析等场景",
+    "description": "GPT-3.5 机器人，可用于自然语言对话、专业知识问答、语义分析等场景",
     "implements": [
         "IPostMessageSent",
         "IPostRoomCreate"
@@ -25,6 +25,9 @@
         },
         {
             "name": "room.write"
+        },
+        {
+            "name": "message.read"
         },
         {
             "name": "message.write"

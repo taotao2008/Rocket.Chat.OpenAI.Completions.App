@@ -9,9 +9,9 @@ import {
 } from '@rocket.chat/apps-engine/definition/accessors';
 import { App } from "@rocket.chat/apps-engine/definition/App";
 import {
-    IMessage,
+    IMessage, IMessageAttachment,
     IPostMessageSent,
-} from "@rocket.chat/apps-engine/definition/messages";
+} from '@rocket.chat/apps-engine/definition/messages';
 import { IAppInfo } from "@rocket.chat/apps-engine/definition/metadata";
 import {IPostRoomCreate, IRoom, RoomType} from '@rocket.chat/apps-engine/definition/rooms';
 import {ISetting} from '@rocket.chat/apps-engine/definition/settings';
@@ -21,10 +21,11 @@ import {
     UIKitViewSubmitInteractionContext,
 } from '@rocket.chat/apps-engine/definition/uikit';
 import {IUser} from '@rocket.chat/apps-engine/definition/users';
+import {requestSpeech2Txt} from './api/RequestAudioServiceApi';
 import {requestBillingByPhone} from './api/RequestManagerApi';
 import { OpenAIChatCommand } from "./commands/OpenAIChatCommand";
 import { buttons } from "./config/Buttons";
-import { settings } from "./config/Settings";
+import {AppSetting, settings} from './config/Settings';
 import {AppEnum} from './enum/App';
 import { ActionButtonHandler } from "./handlers/ActionButtonHandler";
 import {ExecuteBlockAction} from './handlers/ExecuteBlockAction';
@@ -44,10 +45,12 @@ export class OpenAiChatApp extends App implements IPostMessageSent, IPostRoomCre
 
     public botName: string;
 
-
-
     public defaultChannelName: string;
     public defaultChannel: IRoom;
+
+    public QMAI_AUDIO_SERVER_URL: string;
+    public IS_BILLING: string;
+    public AUDIO_SERVICE_API_URL: string;
 
     constructor(info: IAppInfo, logger: ILogger, accessors: IAppAccessors) {
         super(info, logger, accessors);
@@ -58,10 +61,6 @@ export class OpenAiChatApp extends App implements IPostMessageSent, IPostRoomCre
 
     // Test out IPostRoomCreate
     public async checkPostRoomCreate(room: IRoom): Promise<boolean> {
-        this.getLogger().debug('room.type',room.type);
-        this.getLogger().debug('room.userIds',room.userIds);
-        this.getLogger().debug('this.botUser.id',this.botUser.id);
-        this.getLogger().debug('room.userIds.includes(this.botUser.id)',room.userIds?.includes(this.botUser.id));
         return room.type === RoomType.DIRECT_MESSAGE && room.userIds != undefined && room.userIds.includes(this.botUser.id);
     }
 
@@ -78,20 +77,24 @@ export class OpenAiChatApp extends App implements IPostMessageSent, IPostRoomCre
         if (!this.botUsername) {
             return false;
         }
-        this.getLogger().debug('this.botUsername',this.botUsername);
         this.botUser = await this.getAccessors().reader.getUserReader().getByUsername(this.botUsername) as IUser;
 
         this.botName = await environment.getSettings().getValueById('bot_name');
 
-        this.getLogger().debug('this.botUser=',this.botUser);
 
 
         this.defaultChannelName = await environment.getSettings().getValueById('default_channel');
 
-        this.getLogger().debug('this.defaultChannelName=',this.defaultChannelName);
         this.defaultChannel = await this.getAccessors().reader.getRoomReader().getByName(this.defaultChannelName) as IRoom;
 
-        this.getLogger().debug('this.defaultChannel=',this.defaultChannel);
+
+        this.IS_BILLING =  await environment.getSettings().getValueById(AppSetting.IS_BILLING);
+
+
+        this.QMAI_AUDIO_SERVER_URL =  await environment.getSettings().getValueById(AppSetting.QMAI_AUDIO_SERVER_URL);
+
+        this.AUDIO_SERVICE_API_URL =  await environment.getSettings().getValueById(AppSetting.AUDIO_SERVICE_API_URL);
+
 
         return true;
     }
@@ -121,6 +124,15 @@ export class OpenAiChatApp extends App implements IPostMessageSent, IPostRoomCre
                 if (this.defaultChannelName) {
                     this.defaultChannel = await read.getRoomReader().getByName(this.defaultChannelName) as IRoom;
                 }
+                break;
+            case 'is_billing':
+                this.IS_BILLING = setting.value;
+                break;
+            case 'qmai_audio_server_url':
+                this.QMAI_AUDIO_SERVER_URL = setting.value;
+                break;
+            case 'audio_service_api_url':
+                this.AUDIO_SERVICE_API_URL = setting.value;
                 break;
         }
 
@@ -263,89 +275,175 @@ export class OpenAiChatApp extends App implements IPostMessageSent, IPostRoomCre
 
 
 
+
+
             if (prompt.toLowerCase() == 'help') {
                 await sendHelpFix({ app: this, modify, user: this.botUser, room });
                 return
             }
 
 
+            if (message?.attachments?.length) {
+
+                for (let index = 0; index < message.attachments.length; index++) {
+                    const attach = message.attachments[index] as IMessageAttachment;
+
+                    if ( attach.audioUrl != undefined) {
+                        //计费
+                        if (this.IS_BILLING == 'true') {
+                            const isBilling = await requestBillingByPhone(
+                                this,
+                                http,
+                                read,
+                                prompt,
+                                sender,
+                                "2"
+                            );
+
+                            if (!isBilling) {
+                                sendBillingNotification(
+                                    modify,
+                                    room,
+                                    sender,
+                                    AppEnum.MIDJOURNEY_TEXT_BILLING_fAIL
+                                );
+                                return;
+                            }
+                        }
+
+                        let msg_id = '';
+                        msg_id = await sendDirect(
+                            sender,
+                            read,
+                            modify,
+                            AppEnum.SPEECH2TXT_TEXT_WATTING
+                        );
 
 
-            //计费
-            const isBilling = await requestBillingByPhone(
-                this,
-                http,
-                read,
-                prompt,
-                sender,
-                "1"
-            );
-            if (!isBilling) {
-                sendBillingNotification(
-                    modify,
-                    room,
-                    sender,
-                    AppEnum.MIDJOURNEY_TEXT_BILLING_fAIL
-                );
-                return ;
-            }
+                        let prompt_audio = this.QMAI_AUDIO_SERVER_URL + attach.audioUrl;
 
-            const wattingContent = AppEnum.CHATGPT_TEXT_WATTING;
-            sendNotification(
-                modify,
-                room,
-                sender,
-                wattingContent
-            );
+                        this.getLogger().debug('prompt_audio===', prompt_audio);
 
-            let wattingMessageId = '';
 
-            /*if (room.type == 'd') {
-                wattingMessageId = await sendDirect(
-                    sender,
-                    read,
-                    modify,
-                    wattingContent
-                );
+                        requestSpeech2Txt(
+                            this,
+                            http,
+                            read,
+                            prompt_audio,
+                            sender,
+                            "zh-CN",
+                            room,
+                            msg_id,
+                        ).then(result => {
+                            if (result == null) {
+                                sendNotification(
+                                    modify,
+                                    room,
+                                    sender,
+                                    "任务出错，服务接口异常！"
+                                );
+                                return
+                            } else {
+                                if (result) {
+
+                                } else {
+                                    sendNotification(
+                                        modify,
+                                        room,
+                                        sender,
+                                        "任务已存在！"
+                                    );
+                                    return;
+                                }
+                            }
+                        });
+
+                    }
+
+
+                }
+
+
             } else {
-                sendNotification(
-                    modify,
-                    room,
-                    sender,
-                    wattingContent
-                );
-            }*/
 
-            const result = await OpenAiCompletionRequest(
-                this,
-                http,
-                read,
-                context,
-                sender,
-            );
-
-
-            if (result.success) {
-                var markdown_message =
-                    result.content.choices[0].message.content.replace(
-                        /^\s*/gm,
-                        ""
+                if (this.IS_BILLING == 'true') {
+                    //计费
+                    const isBilling = await requestBillingByPhone(
+                        this,
+                        http,
+                        read,
+                        prompt,
+                        sender,
+                        "1"
                     );
-                sendDirect(
-                    sender,
+                    if (!isBilling) {
+                        sendBillingNotification(
+                            modify,
+                            room,
+                            sender,
+                            AppEnum.MIDJOURNEY_TEXT_BILLING_fAIL
+                        );
+                        return ;
+                    }
+                }
+
+
+
+                let wattingMessageId = '';
+
+                if (room.type == 'd') {
+                    wattingMessageId = await sendDirect(
+                        sender,
+                        read,
+                        modify,
+                        AppEnum.CHATGPT_TEXT_WATTING
+                    );
+                } else {
+                    sendNotification(
+                        modify,
+                        room,
+                        sender,
+                        AppEnum.CHATGPT_TEXT_WATTING
+                    );
+                }
+
+                const result = await OpenAiCompletionRequest(
+                    this,
+                    http,
                     read,
-                    modify,
-                    markdown_message
-                );
-            } else {
-                sendNotification(
-                    modify,
-                    room,
+                    context,
                     sender,
-                    `**执行出错!** 无法完成请求，请重试！:\n\n` +
-                        result.content.error.message
                 );
+
+                if (wattingMessageId) {
+                    const wattingMessage = await read.getMessageReader().getById(wattingMessageId) as IMessage;
+                    await modify.getDeleter().deleteMessage(wattingMessage, sender);
+                }
+
+
+                if (result.success) {
+                    var markdown_message =
+                        result.content.choices[0].message.content.replace(
+                            /^\s*/gm,
+                            ""
+                        );
+                    sendDirect(
+                        sender,
+                        read,
+                        modify,
+                        markdown_message
+                    );
+                } else {
+                    sendNotification(
+                        modify,
+                        room,
+                        sender,
+                        `**执行出错!** 无法完成请求，请重试！:\n\n` +
+                        result.content.error.message
+                    );
+                }
             }
+
         }
 
         return;

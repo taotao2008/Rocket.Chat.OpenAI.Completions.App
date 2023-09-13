@@ -4,7 +4,8 @@ import {
 } from "@rocket.chat/apps-engine/definition/settings";
 
 export enum AppSetting {
-    NAMESPACE = "OpenAIChat",
+    NAMESPACE = "OpenAIChat4",
+    //NAMESPACE = "OpenAIChat",
     OpenAI_ORG = "openai_organization",
     OpenAI_API_KEY = "openai_api_key",
     OpenAI_CHAT_DEFAULT_SYSTEM_INSTRUCTION = "openai_chat_default_system_instruction",
@@ -85,7 +86,7 @@ export const settings: Array<ISetting> = [
     {
         id: 'bot_username',
         type: SettingType.STRING,
-        packageValue: 'gpt.bot',
+        packageValue: 'gptplus.bot',
         required: true,
         public: false,
         i18nLabel: AppSetting.NAMESPACE + "_BOT_USERNAME：机器人名称",
@@ -94,7 +95,7 @@ export const settings: Array<ISetting> = [
     {
         id: 'bot_name',
         type: SettingType.STRING,
-        packageValue: 'GPT问答机器人',
+        packageValue: 'GPT Plus机器人',
         required: true,
         public: false,
         i18nLabel: 'bot_name',

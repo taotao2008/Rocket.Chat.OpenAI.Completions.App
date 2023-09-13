@@ -81,7 +81,7 @@ export const en = {
         },
 
         messageAction: {
-            caption: '- 请输入您要提问的问题，也可使用语音进行提问 \n- 您还可以通过单击消息旁边操作菜单 `\uD83C\uDFB9 打开AI问答3.5对话框` 按钮进行提问',
+            caption: '- 请输入您要提问的问题，也可使用语音进行提问 \n- 您还可以通过单击消息旁边操作菜单 `\uD83C\uDFB9 打开AI问答4.0对话框` 按钮进行提问',
             button_ask: 'AI问答',
             button_blend: '多图融合',
             button_describe: '创建图逆',
